@@ -22,10 +22,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
-  } catch {
+  } catch (error: any) {
+    console.error("Stripe Error:", error.message);
     return NextResponse.json(
-      { error: "Failed to create payment intent" },
-      { status: 500 }
+      { error: "Stripe integration is not configured properly. Please use Cash on Delivery for testing." },
+      { status: 400 }
     );
   }
 }

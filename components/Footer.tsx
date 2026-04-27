@@ -1,9 +1,9 @@
 // components/Footer.tsx
-import React from "react";
+import { type CSSProperties } from "react";
 import Link from "next/link";
 
 export default function Footer() {
-  const colTitleStyle: React.CSSProperties = {
+  const colTitleStyle: CSSProperties = {
     fontSize: "10px",
     letterSpacing: "0.2em",
     textTransform: "uppercase",
@@ -11,7 +11,7 @@ export default function Footer() {
     marginBottom: "24px",
   };
 
-  const linkStyle: React.CSSProperties = {
+  const linkStyle: CSSProperties = {
     fontSize: "13px",
     color: "rgba(255,255,255,0.5)",
     textDecoration: "none",

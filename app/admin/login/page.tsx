@@ -1,6 +1,6 @@
 // app/admin/login/page.tsx
 "use client";
-import React, { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -10,7 +10,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");

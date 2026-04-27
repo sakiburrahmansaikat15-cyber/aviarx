@@ -1,13 +1,13 @@
 // components/Newsletter.tsx
 "use client";
 
-import React, { useState } from "react";
+import { useState, type SyntheticEvent } from "react";
 import { motion } from "framer-motion";
 
 export default function Newsletter() {
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitted(true);
   };

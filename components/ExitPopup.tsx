@@ -1,6 +1,6 @@
 // components/ExitPopup.tsx
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function ExitPopup() {
@@ -108,13 +108,13 @@ export default function ExitPopup() {
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "24px" }}>
                 {[minutes, seconds].map((val, i) => (
-                  <React.Fragment key={i}>
+                  <Fragment key={i}>
                     {i === 1 && <span className="font-display" style={{ fontSize: "48px", color: "var(--gold)" }}>:</span>}
                     <div style={{ textAlign: "center" }}>
                       <div className="font-display" style={{ fontSize: "48px", color: "var(--gold)", lineHeight: 1 }}>{val}</div>
                       <div style={{ fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--muted)" }}>{i === 0 ? "Min" : "Sec"}</div>
                     </div>
-                  </React.Fragment>
+                  </Fragment>
                 ))}
               </div>
 

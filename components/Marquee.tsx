@@ -1,7 +1,7 @@
 // components/Marquee.tsx
 "use client";
 
-import React from "react";
+import { Fragment } from "react";
 import { motion } from "framer-motion";
 
 const phrases =[
@@ -29,12 +29,12 @@ export default function Marquee() {
         {[...Array(2)].map((_, i) => (
           <div key={i} className="flex items-center gap-[60px] pr-[60px]">
             {phrases.map((phrase, j) => (
-              <React.Fragment key={j}>
+              <Fragment key={j}>
                 <span className="text-[11px] tracking-[0.2em] uppercase text-[rgba(255,255,255,0.4)] whitespace-nowrap">
                   {phrase}
                 </span>
                 <span className="text-[#c9a96e] whitespace-nowrap">✦</span>
-              </React.Fragment>
+              </Fragment>
             ))}
           </div>
         ))}

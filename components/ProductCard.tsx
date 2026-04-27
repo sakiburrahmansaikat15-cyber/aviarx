@@ -1,9 +1,10 @@
 // components/ProductCard.tsx
 "use client";
-import React, { useRef, useState } from "react";
+import { useState, memo, type MouseEvent } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useWishlist } from "@/context/WishlistContext";
 
 export type Product = {
   id: string;
@@ -22,99 +23,228 @@ type ProductCardProps = {
   onAddToCart: (product: Product) => void;
 };
 
-const ProductCard = React.memo(function ProductCard({ product, onAddToCart }: ProductCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [tilt, setTilt] = useState("perspective(800px) rotateX(0deg) rotateY(0deg)");
-  const [isWishlist, setIsWishlist] = useState(false);
+const ProductCard = memo(function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const rotateX = ((y - rect.height / 2) / rect.height) * -6;
-    const rotateY = ((x - rect.width / 2) / rect.width) * 6;
-    setTilt(`perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`);
-  };
-
-  const handleMouseLeave = () => {
-    setTilt("perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)");
-    setIsHovered(false);
-  };
-
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const inWishlist = isInWishlist(product.id);
   const slug = product.slug || product.name.toLowerCase().replace(/\s+/g, "-");
 
+  const handleWishlist = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      category: product.category,
+      slug,
+      icon: product.icon || "🛍️",
+    });
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-30px" }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-    >
-      <div
-        ref={cardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
+    <>
+      <style>{`
+        @keyframes flowGradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         onMouseEnter={() => setIsHovered(true)}
-        style={{ transform: tilt, transformStyle: "preserve-3d", transition: "transform 0.15s ease, box-shadow 0.3s ease", boxShadow: isHovered ? "0 16px 48px rgba(0,0,0,0.1)" : "none", background: "white" }}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{
+          position: "relative",
+          width: "100%",
+          aspectRatio: "3/4.5",
+          borderRadius: "24px",
+          overflow: "hidden",
+          cursor: "pointer",
+          boxShadow: isHovered 
+            ? "0 30px 60px rgba(0,0,0,0.15), 0 0 40px rgba(252, 182, 159, 0.4)" 
+            : "0 10px 30px rgba(0,0,0,0.05)",
+          transform: isHovered ? "translateY(-10px) scale(1.02)" : "translateY(0) scale(1)",
+          transition: "all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+        }}
       >
-        {/* Image Area */}
-        <div style={{ position: "relative", width: "100%", aspectRatio: "3/4", background: "#f5f2ec", overflow: "hidden" }}>
+        {/* Animated Dynamic Gradient Background */}
+        <div style={{
+          position: "absolute",
+          inset: "-50%",
+          background: "linear-gradient(45deg, #ff9a9e 0%, #fecfef 25%, #f6d365 50%, #fda085 75%, #ff9a9e 100%)",
+          backgroundSize: "400% 400%",
+          animation: isHovered ? "flowGradient 3s ease infinite" : "flowGradient 10s ease infinite",
+          zIndex: 0,
+          opacity: isHovered ? 1 : 0.4,
+          transition: "opacity 0.5s ease",
+        }} />
+
+        {/* Inner shadow/border for 3D look */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          border: "1px solid rgba(255,255,255,0.4)",
+          borderRadius: "24px",
+          zIndex: 5,
+          pointerEvents: "none",
+        }} />
+
+        {/* Wishlist Button */}
+        <button
+          onClick={handleWishlist}
+          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          style={{
+            position: "absolute",
+            top: "16px",
+            right: "16px",
+            zIndex: 30,
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            background: inWishlist ? "#c0392b" : "rgba(255,255,255,0.3)",
+            backdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "20px",
+            color: inWishlist ? "white" : "#1a1a1a",
+            cursor: "pointer",
+            transition: "all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+            transform: isHovered ? "scale(1.1)" : "scale(1)",
+          }}
+        >
+          {inWishlist ? "♥" : "♡"}
+        </button>
+
+        {/* Badge */}
+        {product.badge && (
+          <div style={{
+            position: "absolute",
+            top: "20px",
+            left: "20px",
+            zIndex: 30,
+            background: "rgba(0,0,0,0.8)",
+            backdropFilter: "blur(8px)",
+            color: "white",
+            padding: "6px 14px",
+            borderRadius: "100px",
+            fontSize: "10px",
+            fontWeight: 700,
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            border: "1px solid rgba(255,255,255,0.2)",
+          }}>
+            {product.badge}
+          </div>
+        )}
+
+        {/* Product Image / Icon */}
+        <div style={{
+          position: "absolute",
+          top: "10%",
+          left: "0",
+          right: "0",
+          bottom: "35%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 10,
+          transition: "transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          transform: isHovered ? "scale(1.15) translateY(-5%)" : "scale(1) translateY(0)",
+        }}>
           {product.image ? (
-            <Image src={product.image} alt={product.name} fill style={{ objectFit: "cover", transition: "transform 0.6s cubic-bezier(0.25,0.46,0.45,0.94)", transform: isHovered ? "scale(1.05)" : "scale(1)" }} />
+            <Image src={product.image} alt={product.name} fill style={{ objectFit: "contain", filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.2))" }} />
           ) : (
-            <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "56px", transition: "transform 0.6s ease", transform: isHovered ? "scale(1.05)" : "scale(1)" }}>
+            <div style={{ fontSize: "100px", filter: "drop-shadow(0 20px 30px rgba(0,0,0,0.2))" }}>
               {product.icon}
             </div>
           )}
-
-          {/* Badge */}
-          {product.badge && (
-            <div style={{ position: "absolute", top: "12px", left: "12px", zIndex: 10, fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", padding: "4px 10px", color: "white", background: product.badge === "sale" ? "#c0392b" : "#0a0a0a" }}>
-              {product.badge}
-            </div>
-          )}
-
-          {/* Hover Overlay with buttons */}
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", opacity: isHovered ? 1 : 0, transition: "opacity 0.3s ease", zIndex: 20 }}>
-            <Link href={`/product/${slug}`} style={{ textDecoration: "none", background: "white", color: "#0a0a0a", padding: "12px 32px", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", display: "inline-block", transition: "background 0.2s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#e8d5b0")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "white")}
-            >
-              See Details
-            </Link>
-            <button onClick={() => onAddToCart(product)}
-              style={{ background: "#c9a96e", color: "#0a0a0a", border: "none", padding: "12px 32px", fontSize: "11px", letterSpacing: "0.12em", textTransform: "uppercase", cursor: "pointer", transition: "background 0.2s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#e8d5b0")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#c9a96e")}
-            >
-              Quick Add
-            </button>
-          </div>
         </div>
 
-        {/* Product Info */}
-        <div style={{ padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "17px", fontWeight: 400, color: "#0a0a0a", marginBottom: "4px" }}>
-              {product.name}
+        {/* Glassmorphic Bottom Panel */}
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "rgba(255, 255, 255, 0.4)",
+          backdropFilter: "blur(20px)",
+          borderTop: "1px solid rgba(255, 255, 255, 0.6)",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          zIndex: 20,
+          transition: "transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+          transform: isHovered ? "translateY(0)" : "translateY(56px)",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+              <div style={{ fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#5a5a5a", fontFamily: "DM Sans, sans-serif", marginBottom: "6px" }}>
+                {product.category}
+              </div>
+              <h3 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "22px", fontWeight: 600, color: "#1a1a1a", margin: 0, lineHeight: 1.1 }}>
+                {product.name}
+              </h3>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "18px", fontWeight: 700, color: "#1a1a1a", fontFamily: "DM Sans, sans-serif" }}>
+                ${product.price}
+              </div>
               {product.originalPrice && (
-                <span style={{ fontSize: "12px", color: "#8a8680", textDecoration: "line-through" }}>${product.originalPrice}</span>
+                <div style={{ fontSize: "12px", textDecoration: "line-through", color: "#8a8680", fontFamily: "DM Sans, sans-serif" }}>
+                  ${product.originalPrice}
+                </div>
               )}
-              <span style={{ fontSize: "13px", fontWeight: 500, color: "#0a0a0a" }}>${product.price}</span>
             </div>
           </div>
-          <button onClick={() => setIsWishlist(!isWishlist)}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "18px", color: isWishlist ? "#c0392b" : "#8a8680", transition: "color 0.2s" }}>
-            {isWishlist ? "♥" : "♡"}
+
+          {/* Add to Cart Button */}
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAddToCart(product); }}
+            style={{
+              marginTop: "16px",
+              background: "linear-gradient(90deg, #0a0a0a 0%, #2a2a2a 100%)",
+              color: "white",
+              border: "none",
+              borderRadius: "12px",
+              padding: "16px",
+              fontSize: "12px",
+              fontWeight: 600,
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              fontFamily: "DM Sans, sans-serif",
+              boxShadow: "0 10px 20px rgba(0,0,0,0.2)",
+              transition: "transform 0.2s, box-shadow 0.2s",
+              opacity: isHovered ? 1 : 0,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.03)";
+              e.currentTarget.style.boxShadow = "0 15px 25px rgba(0,0,0,0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.2)";
+            }}
+          >
+            Add to Bag
           </button>
         </div>
-      </div>
-    </motion.div>
+
+        {/* Invisible Link */}
+        <Link href={`/product/${slug}`} style={{ position: "absolute", inset: 0, zIndex: 15 }} aria-label={`View ${product.name}`} />
+      </motion.div>
+    </>
   );
 });
 
 export default ProductCard;
+

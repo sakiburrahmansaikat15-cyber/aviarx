@@ -1,10 +1,19 @@
 // components/SearchModal.tsx
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
-const SAMPLE_PRODUCTS = [
+interface SearchProduct {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  slug: string;
+  icon: string;
+}
+
+const FALLBACK_PRODUCTS: SearchProduct[] = [
   { id: "1", name: "Silk Wrap Blouse", price: 295, category: "Clothing", slug: "silk-wrap-blouse", icon: "👚" },
   { id: "2", name: "Cashmere Turtleneck", price: 450, category: "Clothing", slug: "cashmere-turtleneck", icon: "🧥" },
   { id: "3", name: "Leather Crossbody", price: 320, category: "Accessories", slug: "leather-crossbody", icon: "👜" },
@@ -15,6 +24,8 @@ const SAMPLE_PRODUCTS = [
   { id: "8", name: "Woven Sun Hat", price: 95, category: "Accessories", slug: "woven-sun-hat", icon: "👒" },
 ];
 
+const POPULAR_SEARCHES = ["Silk Blouse", "Cashmere", "Leather Bag", "Trousers", "Accessories"];
+
 type Props = {
   isOpen: boolean;
   onClose: () => void;
@@ -22,10 +33,31 @@ type Props = {
 
 export default function SearchModal({ isOpen, onClose }: Props) {
   const [query, setQuery] = useState("");
+  const [allProducts, setAllProducts] = useState<SearchProduct[]>(FALLBACK_PRODUCTS);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Load products from API once on mount
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((data: unknown) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = (data as Record<string, unknown>[]).map((p) => ({
+            id: String(p._id ?? p.id ?? ""),
+            name: String(p.name ?? ""),
+            price: Number(p.price ?? 0),
+            category: String(p.category ?? ""),
+            slug: String(p.slug ?? ""),
+            icon: String(p.icon ?? "🛍️"),
+          }));
+          setAllProducts(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const results = query.length > 1
-    ? SAMPLE_PRODUCTS.filter((p) =>
+    ? allProducts.filter((p) =>
         p.name.toLowerCase().includes(query.toLowerCase()) ||
         p.category.toLowerCase().includes(query.toLowerCase())
       )
@@ -90,11 +122,18 @@ export default function SearchModal({ isOpen, onClose }: Props) {
             </div>
 
             {/* Results */}
-            {query.length > 1 && (
+            {query.length > 1 ? (
               <div>
                 {results.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: "40px 0", color: "#8a8680", fontSize: "14px" }}>
-                    No results found for &quot;{query}&quot;
+                  <div style={{ textAlign: "center", padding: "40px 0" }}>
+                    <div style={{ fontSize: "32px", marginBottom: "16px" }}>🔍</div>
+                    <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "22px", marginBottom: "8px", color: "#0a0a0a" }}>
+                      No results for &quot;{query}&quot;
+                    </div>
+                    <p style={{ fontSize: "13px", color: "#8a8680", marginBottom: "24px" }}>Try different keywords or browse our collections</p>
+                    <Link href="/shop" onClick={onClose} style={{ textDecoration: "none", fontSize: "12px", letterSpacing: "0.1em", textTransform: "uppercase", color: "#0a0a0a", borderBottom: "0.5px solid #0a0a0a" }}>
+                      Browse All
+                    </Link>
                   </div>
                 ) : (
                   <div>
@@ -104,7 +143,10 @@ export default function SearchModal({ isOpen, onClose }: Props) {
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "16px" }}>
                       {results.map((product) => (
                         <Link key={product.id} href={`/product/${product.slug}`} onClick={onClose} style={{ textDecoration: "none" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", border: "0.5px solid rgba(0,0,0,0.08)", transition: "border-color 0.2s" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px", border: "0.5px solid rgba(0,0,0,0.08)", transition: "border-color 0.2s" }}
+                            onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "#c9a96e")}
+                            onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.borderColor = "rgba(0,0,0,0.08)")}
+                          >
                             <div style={{ width: "48px", height: "48px", background: "#f5f2ec", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", flexShrink: 0 }}>
                               {product.icon}
                             </div>
@@ -119,16 +161,16 @@ export default function SearchModal({ isOpen, onClose }: Props) {
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Popular when no query */}
-            {query.length <= 1 && (
+            ) : (
               <div>
                 <div style={{ fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#8a8680", marginBottom: "16px" }}>Popular Searches</div>
                 <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                  {["Silk Blouse", "Cashmere", "Leather Bag", "Trousers", "Accessories"].map((term) => (
+                  {POPULAR_SEARCHES.map((term) => (
                     <button key={term} onClick={() => setQuery(term)}
-                      style={{ padding: "8px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "12px", letterSpacing: "0.08em", cursor: "pointer", color: "#0a0a0a", transition: "border-color 0.2s" }}>
+                      style={{ padding: "8px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "12px", letterSpacing: "0.08em", cursor: "pointer", color: "#0a0a0a", transition: "border-color 0.2s", fontFamily: "DM Sans, sans-serif" }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.borderColor = "#c9a96e")}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(0,0,0,0.15)")}
+                    >
                       {term}
                     </button>
                   ))}

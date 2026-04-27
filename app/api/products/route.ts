@@ -9,11 +9,9 @@ export async function GET(): Promise<NextResponse> {
     await connectDB();
     const products = await Product.find({}).sort({ createdAt: -1 });
     return NextResponse.json({ products });
-  } catch {
-    return NextResponse.json(
-      { message: "Failed to fetch products" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+    return NextResponse.json({ products: [] }, { status: 200 });
   }
 }
 

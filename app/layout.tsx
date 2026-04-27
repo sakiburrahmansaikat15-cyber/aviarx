@@ -1,11 +1,12 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
+import { type ReactNode } from "react";
 import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 import CartSidebarWrapper from "@/components/CartSidebarWrapper";
+import AnnouncementBar from "@/components/AnnouncementBar";
+import ClientOnlyComponents from "@/components/ClientOnlyComponents";
 import "./globals.css";
-
-const CustomCursor = dynamic(() => import("@/components/CustomCursor"), { ssr: false });
 
 export const metadata: Metadata = {
   title: "AVIAR — Premium Collection",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -28,10 +29,13 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <CustomCursor />
+        <ClientOnlyComponents />
+        <AnnouncementBar />
         <CartProvider>
-          {children}
-          <CartSidebarWrapper />
+          <WishlistProvider>
+            {children}
+            <CartSidebarWrapper />
+          </WishlistProvider>
         </CartProvider>
       </body>
     </html>

@@ -41,13 +41,22 @@ function readCartFromStorage(): CartItem[] {
 }
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<CartItem[]>(readCartFromStorage);
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Persist to localStorage whenever cart changes
+  // Read from localStorage on mount
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
-  }, [cart]);
+    setCart(readCartFromStorage());
+    setIsMounted(true);
+  }, []);
+
+  // Persist to localStorage whenever cart changes, but only after mount
+  useEffect(() => {
+    if (isMounted) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+    }
+  }, [cart, isMounted]);
 
   const addToCart = useCallback((newItem: CartItem) => {
     setCart((prev) => {

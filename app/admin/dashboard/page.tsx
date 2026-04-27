@@ -36,7 +36,7 @@ const SAMPLE_ORDERS: DashboardOrder[] = [
   { id: "AV5P2Y9U", customer: "Emma Wilson", product: "Silk Blouse", amount: 280, status: "Delivered", date: "Apr 20, 2025" },
 ];
 
-const STATUS_COLORS: Record<OrderStatus, string> = {
+const STATUS_COLORS: Partial<Record<OrderStatus, string>> = {
   Processing: "#c9a96e",
   Shipped: "#2563eb",
   Delivered: "#16a34a",

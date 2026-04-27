@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import { useState, type ChangeEvent, type SyntheticEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
@@ -23,6 +23,13 @@ const CARD_ELEMENT_OPTIONS = {
   },
 };
 
+// Supported coupon codes
+const COUPONS: Record<string, { type: "percent" | "fixed" | "shipping"; value: number; label: string }> = {
+  AVIAR10: { type: "percent", value: 10, label: "10% off" },
+  SAVE20: { type: "fixed", value: 20, label: "$20 off" },
+  FREESHIP: { type: "shipping", value: 0, label: "Free shipping" },
+};
+
 type PaymentMethod = "card" | "cod";
 
 function CheckoutForm() {
@@ -38,14 +45,44 @@ function CheckoutForm() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const shipping = cartTotal >= 150 ? 0 : 12;
-  const total = cartTotal + shipping;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Coupon
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState("");
+
+  const shipping = cartTotal >= 150 ? 0 : 12;
+
+  const discount = (() => {
+    if (!appliedCoupon) return 0;
+    const c = COUPONS[appliedCoupon];
+    if (!c) return 0;
+    if (c.type === "percent") return Math.round((cartTotal * c.value) / 100 * 100) / 100;
+    if (c.type === "fixed") return Math.min(c.value, cartTotal);
+    if (c.type === "shipping") return shipping;
+    return 0;
+  })();
+
+  const effectiveShipping = appliedCoupon && COUPONS[appliedCoupon]?.type === "shipping" ? 0 : shipping;
+  const total = Math.max(0, cartTotal - (appliedCoupon && COUPONS[appliedCoupon]?.type !== "shipping" ? discount : 0) + effectiveShipping);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleApplyCoupon = () => {
+    const code = couponInput.trim().toUpperCase();
+    setCouponError("");
+    if (!code) return;
+    if (COUPONS[code]) {
+      setAppliedCoupon(code);
+      setCouponInput("");
+    } else {
+      setCouponError("Invalid coupon code");
+    }
+  };
+
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -68,13 +105,12 @@ function CheckoutForm() {
         return;
       }
 
-      // Stripe card payment
       const res = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: total }),
       });
-      const { clientSecret, error: serverError } = await res.json();
+      const { clientSecret, error: serverError } = await res.json() as { clientSecret?: string; error?: string };
       if (serverError) { setError(serverError); setLoading(false); return; }
 
       if (!stripe || !elements) { setError("Stripe not loaded"); setLoading(false); return; }
@@ -82,7 +118,7 @@ function CheckoutForm() {
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) { setError("Card element not found"); setLoading(false); return; }
 
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret!, {
         payment_method: {
           card: cardElement,
           billing_details: { name: `${form.firstName} ${form.lastName}`, email: form.email },
@@ -118,6 +154,16 @@ function CheckoutForm() {
     }
   };
 
+  const inputStyle: React.CSSProperties = {
+    padding: "14px 16px",
+    border: "0.5px solid rgba(0,0,0,0.15)",
+    background: "none",
+    fontSize: "14px",
+    outline: "none",
+    fontFamily: "DM Sans, sans-serif",
+    width: "100%",
+  };
+
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 48px", display: "grid", gridTemplateColumns: "1fr 380px", gap: "80px", alignItems: "start" }}>
 
@@ -133,28 +179,21 @@ function CheckoutForm() {
           <div style={{ marginBottom: "40px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#8a8680", marginBottom: "20px" }}>Contact Information</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-              <input name="firstName" placeholder="First Name" value={form.firstName} onChange={handleChange} required
-                style={{ padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
-              <input name="lastName" placeholder="Last Name" value={form.lastName} onChange={handleChange} required
-                style={{ padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
+              <input name="firstName" placeholder="First Name" value={form.firstName} onChange={handleChange} required style={inputStyle} />
+              <input name="lastName" placeholder="Last Name" value={form.lastName} onChange={handleChange} required style={inputStyle} />
             </div>
-            <input name="email" type="email" placeholder="Email Address" value={form.email} onChange={handleChange} required
-              style={{ width: "100%", padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
+            <input name="email" type="email" placeholder="Email Address" value={form.email} onChange={handleChange} required style={inputStyle} />
           </div>
 
           {/* Shipping */}
           <div style={{ marginBottom: "40px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#8a8680", marginBottom: "20px" }}>Shipping Address</div>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <input name="address" placeholder="Street Address" value={form.address} onChange={handleChange} required
-                style={{ padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
+              <input name="address" placeholder="Street Address" value={form.address} onChange={handleChange} required style={inputStyle} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
-                <input name="city" placeholder="City" value={form.city} onChange={handleChange} required
-                  style={{ padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
-                <input name="country" placeholder="Country" value={form.country} onChange={handleChange} required
-                  style={{ padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
-                <input name="zip" placeholder="ZIP Code" value={form.zip} onChange={handleChange} required
-                  style={{ padding: "14px 16px", border: "0.5px solid rgba(0,0,0,0.15)", background: "none", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }} />
+                <input name="city" placeholder="City" value={form.city} onChange={handleChange} required style={inputStyle} />
+                <input name="country" placeholder="Country" value={form.country} onChange={handleChange} required style={inputStyle} />
+                <input name="zip" placeholder="ZIP Code" value={form.zip} onChange={handleChange} required style={inputStyle} />
               </div>
             </div>
           </div>
@@ -163,7 +202,6 @@ function CheckoutForm() {
           <div style={{ marginBottom: "40px" }}>
             <div style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#8a8680", marginBottom: "20px" }}>Payment Method</div>
 
-            {/* Method Tabs */}
             <div style={{ display: "flex", gap: "0", marginBottom: "24px", border: "0.5px solid rgba(0,0,0,0.15)" }}>
               {([["card", "💳 Credit / Debit Card"], ["cod", "🚚 Cash on Delivery"]] as [PaymentMethod, string][]).map(([key, label]) => (
                 <button key={key} type="button" onClick={() => setPaymentMethod(key)}
@@ -195,7 +233,6 @@ function CheckoutForm() {
             </AnimatePresence>
           </div>
 
-          {/* Error */}
           {error && (
             <div style={{ padding: "12px 16px", background: "#fff0f0", border: "0.5px solid #c0392b", color: "#c0392b", fontSize: "13px", marginBottom: "20px" }}>
               {error}
@@ -214,6 +251,7 @@ function CheckoutForm() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
         style={{ background: "#f5f2ec", padding: "40px", position: "sticky", top: "96px" }}>
         <div style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#8a8680", marginBottom: "24px" }}>Order Summary</div>
+
         {cart.length === 0 ? (
           <p style={{ fontSize: "13px", color: "#8a8680" }}>Your cart is empty</p>
         ) : (
@@ -227,13 +265,79 @@ function CheckoutForm() {
                 <div style={{ fontSize: "14px", marginLeft: "16px", flexShrink: 0 }}>${(item.price * item.qty).toFixed(2)}</div>
               </div>
             ))}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#8a8680", marginTop: "8px", marginBottom: "8px" }}>
-              <span>Shipping</span>
-              <span style={{ color: shipping === 0 ? "#c9a96e" : "#0a0a0a" }}>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+
+            {/* Coupon Code */}
+            <div style={{ marginTop: "8px", marginBottom: "16px" }}>
+              {appliedCoupon ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "rgba(201,169,110,0.12)", border: "0.5px solid rgba(201,169,110,0.4)" }}>
+                  <div>
+                    <span style={{ fontSize: "11px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#c9a96e" }}>
+                      ✓ {appliedCoupon}
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#8a8680", marginLeft: "8px" }}>
+                      — {COUPONS[appliedCoupon]?.label}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setAppliedCoupon(null)}
+                    style={{ background: "none", border: "none", cursor: "pointer", fontSize: "12px", color: "#8a8680" }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: "flex", gap: "0" }}>
+                    <input
+                      placeholder="Coupon code"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApplyCoupon(); } }}
+                      style={{ flex: 1, padding: "10px 14px", border: "0.5px solid rgba(0,0,0,0.15)", borderRight: "none", background: "white", fontSize: "12px", outline: "none", fontFamily: "DM Sans, sans-serif", textTransform: "uppercase", letterSpacing: "0.08em" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      style={{ padding: "10px 16px", background: "#0a0a0a", color: "#fafaf8", border: "none", cursor: "pointer", fontSize: "11px", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "DM Sans, sans-serif" }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {couponError && (
+                    <p style={{ fontSize: "11px", color: "#c0392b", marginTop: "6px" }}>{couponError}</p>
+                  )}
+                  <p style={{ fontSize: "10px", color: "#8a8680", marginTop: "6px", letterSpacing: "0.04em" }}>
+                    Try: AVIAR10 · SAVE20 · FREESHIP
+                  </p>
+                </div>
+              )}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "20px", paddingTop: "20px", borderTop: "0.5px solid rgba(0,0,0,0.1)" }}>
-              <span style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a8680" }}>Total</span>
-              <span style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "28px" }}>${total.toFixed(2)}</span>
+
+            {/* Totals */}
+            <div style={{ borderTop: "0.5px solid rgba(0,0,0,0.08)", paddingTop: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#8a8680", marginBottom: "8px" }}>
+                <span>Subtotal</span>
+                <span>${cartTotal.toFixed(2)}</span>
+              </div>
+
+              {discount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#c9a96e", marginBottom: "8px" }}>
+                  <span>Discount</span>
+                  <span>−${discount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: "#8a8680", marginBottom: "16px" }}>
+                <span>Shipping</span>
+                <span style={{ color: effectiveShipping === 0 ? "#c9a96e" : "#0a0a0a" }}>
+                  {effectiveShipping === 0 ? "Free" : `$${effectiveShipping.toFixed(2)}`}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "16px", borderTop: "0.5px solid rgba(0,0,0,0.1)" }}>
+                <span style={{ fontSize: "12px", letterSpacing: "0.08em", textTransform: "uppercase", color: "#8a8680" }}>Total</span>
+                <span style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "28px" }}>${total.toFixed(2)}</span>
+              </div>
             </div>
           </>
         )}

@@ -1,9 +1,10 @@
 // app/admin/products/new/page.tsx
 "use client";
-import React, { useState } from "react";
+import { useState, type ChangeEvent, type SyntheticEvent } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function AddProductPage() {
     setForm((prev) => ({ ...prev, colors: prev.colors.filter((c) => c !== color) }));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingImage(true);
@@ -64,7 +65,7 @@ export default function AddProductPage() {
     }
   };
 
-  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
@@ -217,8 +218,8 @@ export default function AddProductPage() {
                 <div style={{ background: "white", padding: "32px" }}>
                   <div style={{ fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#8a8680", marginBottom: "20px" }}>Product Image</div>
                   {imagePreview && (
-                    <div style={{ marginBottom: "16px", position: "relative" }}>
-                      <img src={imagePreview} alt="Preview" style={{ width: "100%", aspectRatio: "3/4", objectFit: "cover" }} />
+                    <div style={{ marginBottom: "16px", position: "relative", aspectRatio: "3/4" }}>
+                      <Image src={imagePreview} alt="Preview" fill style={{ objectFit: "cover" }} unoptimized />
                       <button type="button" onClick={() => { setImagePreview(""); setImageUrl(""); }}
                         style={{ position: "absolute", top: "8px", right: "8px", background: "#0a0a0a", color: "white", border: "none", width: "28px", height: "28px", cursor: "pointer", fontSize: "14px" }}>
                         ✕
