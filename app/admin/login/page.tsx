@@ -51,6 +51,7 @@ export default function AdminLoginPage() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
+            autoComplete="email"
             style={{ padding: "14px 16px", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.1)", color: "var(--white)", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }}
           />
           <input
@@ -59,6 +60,7 @@ export default function AdminLoginPage() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
+            autoComplete="current-password"
             style={{ padding: "14px 16px", background: "rgba(255,255,255,0.05)", border: "0.5px solid rgba(255,255,255,0.1)", color: "var(--white)", fontSize: "14px", outline: "none", fontFamily: "DM Sans, sans-serif" }}
           />
 

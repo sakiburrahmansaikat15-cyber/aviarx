@@ -13,7 +13,7 @@ export default function Newsletter() {
   };
 
   return (
-    <section className="bg-cream px-[48px] py-[120px] w-full flex justify-center">
+    <section className="bg-cream px-5 md:px-[48px] py-[60px] md:py-[120px] w-full flex justify-center">
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}

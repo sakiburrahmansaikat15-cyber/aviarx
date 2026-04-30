@@ -2,8 +2,10 @@
 "use client";
 import { useState, useEffect, useRef, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePathname } from "next/navigation";
 
 export default function ExitPopup() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState(9 * 60 + 59);
   const [toastMsg, setToastMsg] = useState("");
@@ -11,6 +13,9 @@ export default function ExitPopup() {
   const hasShown = useRef(false);
 
   useEffect(() => {
+    // Skip on touch / coarse-pointer devices — exit-intent doesn't work there
+    if (window.matchMedia("(hover: none), (pointer: coarse)").matches) return;
+
     const handleMouseLeave = (e: MouseEvent) => {
       if (e.clientY < 10 && !hasShown.current) {
         hasShown.current = true;
@@ -31,6 +36,8 @@ export default function ExitPopup() {
       clearTimeout(timer);
     };
   }, []);
+
+  if (pathname.startsWith("/admin")) return null;
 
   useEffect(() => {
     if (!isVisible) return;

@@ -17,6 +17,7 @@ const BG_PRODUCTS: BgProduct[] = [
 export default function Hero() {
   const containerRef = useRef<HTMLElement>(null);
   const [currentProduct, setCurrentProduct] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(true);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -33,8 +34,15 @@ export default function Hero() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const update = () => setIsDesktop(window.innerWidth >= 768);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   return (
-    <section ref={containerRef} style={{ height: "150vh", position: "relative", width: "100%" }}>
+    <section ref={containerRef} style={{ height: isDesktop ? "150vh" : "100vh", position: "relative", width: "100%" }}>
       <div style={{ height: "100vh", position: "sticky", top: 0, overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #0a0a0a 0%, #1c1a17 50%, #2a2520 100%)" }}>
 
         {/* Background Product Slideshow */}
@@ -54,7 +62,7 @@ export default function Hero() {
         </div>
 
         {/* Product indicator dots */}
-        <div style={{ position: "absolute", bottom: "80px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "8px", zIndex: 10 }}>
+        <div style={{ position: "absolute", bottom: "60px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "8px", zIndex: 10 }}>
           {BG_PRODUCTS.map((_, i) => (
             <button
               key={i}
@@ -66,8 +74,8 @@ export default function Hero() {
 
         {/* Decorative Circles */}
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", pointerEvents: "none" }}>
-          <div style={{ width: "560px", height: "560px", borderRadius: "50%", border: "0.5px solid rgba(201,169,110,0.15)", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", animation: "rotateCW 30s linear infinite" }} />
-          <div style={{ width: "380px", height: "380px", borderRadius: "50%", border: "0.5px solid rgba(201,169,110,0.1)", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", animation: "rotateCCW 20s linear infinite" }} />
+          <div style={{ width: "min(560px, 90vw)", height: "min(560px, 90vw)", borderRadius: "50%", border: "0.5px solid rgba(201,169,110,0.15)", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", animation: "rotateCW 30s linear infinite" }} />
+          <div style={{ width: "min(380px, 62vw)", height: "min(380px, 62vw)", borderRadius: "50%", border: "0.5px solid rgba(201,169,110,0.1)", position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", animation: "rotateCCW 20s linear infinite" }} />
         </div>
 
         {/* Main Content */}
@@ -116,12 +124,12 @@ export default function Hero() {
           <motion.div
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.5 }}
-            style={{ display: "flex", gap: "16px", alignItems: "center" }}
+            style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}
           >
-            <Link href="/shop" style={{ background: "#c9a96e", color: "#0a0a0a", padding: "14px 40px", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", textDecoration: "none", display: "inline-block" }}>
+            <Link href="/shop" style={{ background: "#c9a96e", color: "#0a0a0a", padding: "14px 32px", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", textDecoration: "none", display: "inline-block", minWidth: isDesktop ? "160px" : "140px", textAlign: "center" }}>
               Shop Collection
             </Link>
-            <Link href="/about" style={{ background: "transparent", border: "0.5px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", padding: "14px 40px", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", textDecoration: "none", display: "inline-block" }}>
+            <Link href="/about" style={{ background: "transparent", border: "0.5px solid rgba(255,255,255,0.3)", color: "rgba(255,255,255,0.7)", padding: "14px 32px", fontSize: "12px", letterSpacing: "0.12em", textTransform: "uppercase", textDecoration: "none", display: "inline-block", minWidth: isDesktop ? "160px" : "140px", textAlign: "center" }}>
               Our Story
             </Link>
           </motion.div>
